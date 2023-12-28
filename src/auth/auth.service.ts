@@ -1,15 +1,19 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 import { PrismaService } from 'src/prisma/prisma.service';
-import { AuthDto } from './dto';
+import { AuthDto, RegisterDto } from './dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable({})
 export class AuthService {
   constructor(private prisma: PrismaService) {}
 
-  async signup({ name, email, password }: AuthDto) {
+  async signup({ name, email, password }: RegisterDto) {
     const passwordHash = await bcrypt.hash(password, 6);
 
     try {
@@ -35,7 +39,19 @@ export class AuthService {
     }
   }
 
-  signin() {
-    return 'I am signin';
+  async signin({ email, password }: AuthDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) throw new BadRequestException('Invalid credentials');
+
+    const passowordMatches = await bcrypt.compare(password, user.passwordHash);
+
+    if (!passowordMatches) throw new BadRequestException('Invalid credentials');
+
+    delete user.passwordHash;
+
+    return { user };
   }
 }
