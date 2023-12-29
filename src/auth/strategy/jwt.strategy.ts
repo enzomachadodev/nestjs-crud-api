@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
@@ -21,6 +21,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     const user = await this.prisma.user.findUnique({
       where: { id: sub },
     });
+
+    if (!user) throw new ForbiddenException('Invalid bearer token');
 
     delete user.passwordHash;
 
